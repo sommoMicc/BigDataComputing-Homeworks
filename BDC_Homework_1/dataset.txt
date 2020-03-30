@@ -1,0 +1,5 @@
+test dataset for TemplateHW1
+dataset contains five documents
+run TemplateHW1 using dataset
+TemplateHW1 prints number documents dataset
+TemplateHW1 also prints number distinct words average length words dataset
