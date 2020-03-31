@@ -1,0 +1,33 @@
+INPUT:
+
+** K=4
+
+** DATASET:
+0 Fantasy
+1 Western
+2 Fantasy
+3 Western
+4 Action
+5 Western
+6 Western
+7 Western
+8 Western
+9 Western
+10 Action
+11 Western
+12 Fantasy
+13 Western
+14 Western
+15 Western
+16 Western
+17 Thriller
+18 Animation
+19 Fantasy
+
+OUTPUT:
+
+VERSION WITH DETERMINISTIC PARTITIONS
+Output pairs = (Action,2) (Animation,1) (Fantasy,4) (Thriller,1) (Western,12)
+VERSION WITH SPARK PARTITIONS
+Most frequent frequent class = (Western,12)
+Max partition size = 5
