@@ -159,7 +159,7 @@ public class hw1 {
         Tuple2<String,Tuple2<Long,Long>> mf_class = sp_count.reduce((c1,c2)->(c1._2()._1()>c2._2()._1()?c1:c2));
 
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS");
-        System.out.println("Most frequent class = "+mf_class._1()+" "+ mf_class._2()._1());
+        System.out.println("Most frequent class = ("+mf_class._1()+","+ mf_class._2()._1()+")");
         System.out.println("Max partition size = "+N_max);
 
     }
