@@ -21,6 +21,7 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         Logger.getLogger("org").setLevel(Level.OFF);
         Logger.getLogger("akka").setLevel(Level.OFF);
+
         if (args.length != 2) {
             throw new IllegalArgumentException("USAGE: num_partitions file_path");
         }
@@ -31,7 +32,6 @@ public class hw1 {
         System.setProperty("hadoop.home.dir", "C:\\winutils");
         SparkConf conf = new SparkConf(true).setAppName("Homework1");
         JavaSparkContext sc = new JavaSparkContext(conf);
-        sc.setLogLevel("WARN");
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // INPUT READING
@@ -46,26 +46,20 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SETTING GLOBAL VARIABLES
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-        long numdocs, numwords;
-        numdocs = docs.count();
-        System.out.println("Number of documents = " + numdocs);
         JavaPairRDD<String, Long> count;
         
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // IMPROVED WORD COUNT with groupByKey
+        // CLASS COUNT WITH DETERMINISTIC PARTITION
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-        Random randomGenerator = new Random();
+        // it è la lista di tutti i ounter parziali associata alla chiave graggruppata da grupByKey()
         count = docs
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)  generate key value pairs for every line
-
                     String[] tokens = line.split(" ");
                     HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
-                    for (int i=0; i<2; i++){
-                        counts.put(Long.parseLong(tokens[0]), tokens[1]);  // inserisce la chiave i e valore parola di ogni riga
-                    }
+
+                    // Read all the classes in the input file
+                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
 
                     for (Map.Entry<Long, String> e : counts.entrySet()) {
                         pairs.add(new Tuple2<Long,String>(e.getKey()%K, e.getValue()));  // generate key value pair
@@ -73,142 +67,101 @@ public class hw1 {
                     return pairs.iterator();
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1) return a list of (k, list of Strings)
-                .flatMapToPair((parole) -> {  // parole è la lista di tutte le parole con la stessa chiave
-                    Iterable<String> words = parole._2();
+                .flatMapToPair((cls) -> {  // cls is the list of key-value pairs <K, Classes> of the same partition
+                    Iterable<String> classes = cls._2(); // List of classes of the current partition
                     HashMap<String, Long> counts = new HashMap<>();
-                    for (String e : words) {
+                    for (String e : classes) {
                         counts.put(e, 1L + counts.getOrDefault(e, 0L));
                     }
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
                         pairs.add(new Tuple2<String, Long>(e.getKey(), e.getValue()));
                     }
-                    return pairs.iterator();  // la reduce ha ritornato una lista formata da chiave->parola  e valore->suo conteggio
+                    return pairs.iterator();  // Returns a list of intermediate key-value pairs <Class, count_in_partition>,
+                                              // where "count_in_partition" is the number of objects having the class
+                                              // "Class" that are in the same partition
                 })
-                    // <-- REDUCE PHASE (R2)
-                .reduceByKey((x,y) ->   // it è la lista di tutti i ounter parziali associata alla chiave graggruppata da grupByKey()
-                    x+y
-                );
-        numwords = count.count();
-        System.out.println("Number of distinct words in the documents = " + numwords);
+                .reduceByKey(Long::sum);    // <-- REDUCE PHASE (R2). Sums all the values that have the same key (class)
 
+        System.out.println("VERSION WITH DETERMINISTIC PARTITIONS");
+        System.out.print("OUTPUT PAIRS:");
         for(Tuple2<String,Long> tuple:count.sortByKey().collect()) {
-            System.out.println("("+tuple._1()+","+tuple._2()+")");
+            // Outputs the solution
+            System.out.print(" ("+tuple._1()+","+tuple._2()+")");
         }
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // IMPROVED WORD COUNT with mapPartitions
+        // CLASS COUNT WITH SPARK PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        JavaPairRDD<String, Tuple2<Long, Long>> count1;
-
-        count1 = docs
+        JavaPairRDD<String, Tuple2<Long, Long>> sp_count;
+        sp_count = docs
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)
 
                     String[] tokens = line.split(" ");
                     HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
-                    for (int i=0; i<2; i++){
-                        counts.put(Long.parseLong(tokens[0]), tokens[1]);  // inserisce la chiave i e valore parola di ogni riga
-                    }
+
+                    // Read all the classes in the input file
+                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
+
+                    // Max partition size
                     Long J = (long)Math.floor(Math.sqrt(K));
 
                     for (Map.Entry<Long, String> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<Long,String>(e.getKey()%J, e.getValue()));  // generate key value pair
+                        pairs.add(new Tuple2<Long,String>(e.getKey() % J, e.getValue()));  // generate key value pair
                     }
                     return pairs.iterator();
                 })
-                .mapPartitionsToPair((wc) -> {    // <-- REDUCE PHASE (R1)
-                    Long N_max = 0L;
+                .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
+                    long N_max = 0L; // Number of operations in each worker
                     HashMap<String, Long> counts = new HashMap<>();
-                    while (wc.hasNext()) {
+                    while (cc.hasNext()) {
                         N_max += 1L;
-                        Tuple2<Long, String> tuple = wc.next();
+                        Tuple2<Long, String> tuple = cc.next();
+                        // Count the occurrencies of a specific class in the partition
                         counts.put(tuple._2(), 1L + counts.getOrDefault(tuple._2(), 0L));
                     }
                     ArrayList<Tuple2<String, Tuple2<Long, Long>>> pairs = new ArrayList<>();
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
+                        // Generate the key-value pair, where the key is the class and the value is a tuple <freq, n_max>,
+                        // where "freq" is the frequency of the class in the partition and "n_max" is the number of
+                        // operation done by the current worker.
                         pairs.add(new Tuple2<String, Tuple2<Long,Long>>(e.getKey(), new Tuple2<Long, Long>(e.getValue(), N_max)));
                     }
                     return pairs.iterator();
                 })
-                .groupByKey()
+                .groupByKey()   // <-- REDUCE PHASE (R2)
                 .mapValues((it)->{
-                    //HashMap<Long, String> counts = new HashMap<>();
                     long sum = 0L;
                     long max = -1L;
+
                     for (Tuple2<Long, Long> el :it){
+                        // Sum all the occurrencies of the same class
                         sum = el._1()+ sum;
                         if (el._2() > max){
+                            // Detect the maximum number of operations
                             max = el._2();
                         }
                     }
 
                     return new Tuple2<>(sum,max);
                 });
-        numwords = count.count();
-        System.out.println("Number of distinct words in the documents = " + numwords);
 
         long N_max = -1;
-
-        for(Tuple2<String,Tuple2<Long, Long>> tuple:count1.sortByKey().collect()) {
+        for(Tuple2<String,Tuple2<Long, Long>> tuple:sp_count.sortByKey().collect()) {
+            // Get the absolute maximum number of pairs that in round 1 are processed by a single reducer
             if (tuple._2()._2() > N_max){
                 N_max=tuple._2()._2();
             }
         }
-        /*Tuple2<String,Tuple2<Long,Long>> massimo = count1.max((Tuple2<String,Tuple2<Long,Long>> a, Tuple2<String,Tuple2<Long,Long>> b)->
-            a._2()._1().compareTo(b._2()._2()));*/
+        // Most frequent class computation
+        Tuple2<String,Tuple2<Long,Long>> mf_class = sp_count.reduce((c1,c2)->(c1._2()._1()>c2._2()._1()?c1:c2));
 
-        Tuple2<String,Tuple2<Long,Long>> massimo2 = count1.reduce((c1,c2)->(c1._2()._1()>c2._2()._1()?c1:c2));
+        System.out.println("\n\nVERSION WITH SPARK PARTITIONS");
+        System.out.println("Most frequent class = "+mf_class._1()+" "+ mf_class._2()._1());
+        System.out.println("Max partition size = "+N_max);
 
-
-        System.out.println("N_max= "+N_max);
-        System.out.println("Most frequent frequent class = "+massimo2._1()+" "+ massimo2._2()._1());
-
-       /* count = docs
-                .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
-                    String[] tokens = document.split(" ");
-                    HashMap<String, Long> counts = new HashMap<>();
-                    ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-                    for (String token : tokens) {
-                        counts.put(token, 1L + counts.getOrDefault(token, 0L));
-                    }
-                    for (Map.Entry<String, Long> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
-                    }
-                    return pairs.iterator();
-                })
-                .mapPartitionsToPair((wc) -> {    // <-- REDUCE PHASE (R1)
-                    HashMap<String, Long> counts = new HashMap<>();
-                    while (wc.hasNext()) {
-                        Tuple2<String, Long> tuple = wc.next();
-                        counts.put(tuple._1(), tuple._2() + counts.getOrDefault(tuple._1(), 0L));
-                    }
-                    ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-                    for (Map.Entry<String, Long> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
-                    }
-                    return pairs.iterator();
-                })
-                .groupByKey()     // <-- REDUCE PHASE (R2)
-                .mapValues((it) -> {
-                    long sum = 0;
-                    for (long c : it) {
-                        sum += c;
-                    }
-                    return sum;
-                });
-        numwords = count.count();
-        System.out.println("Number of distinct words in the documents = " + numwords);
-*/
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // COMPUTE AVERAGE WORD LENGTH
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-       /* int avgwordlength = count
-                .map((tuple) -> tuple._1().length())
-                .reduce((x, y) -> x + y);
-        System.out.println("Average word length = " + avgwordlength / numwords);*/
     }
 
 }
