@@ -2,10 +2,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 import shapeless.Tuple;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,7 +19,8 @@ public class hw1 {
         // CHECKING NUMBER OF CMD LINE PARAMETERS
         // Parameters are: number_partitions, <path to file>
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
+        Logger.getLogger("org").setLevel(Level.OFF);
+        Logger.getLogger("akka").setLevel(Level.OFF);
         if (args.length != 2) {
             throw new IllegalArgumentException("USAGE: num_partitions file_path");
         }
@@ -26,7 +28,7 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SPARK SETUP
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        System.setProperty("hadoop.home.dir", "C:\\winutils\\");
+        System.setProperty("hadoop.home.dir", "C:\\winutils");
         SparkConf conf = new SparkConf(true).setAppName("Homework1");
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("WARN");
@@ -49,28 +51,7 @@ public class hw1 {
         numdocs = docs.count();
         System.out.println("Number of documents = " + numdocs);
         JavaPairRDD<String, Long> count;
-
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // STANDARD WORD COUNT with reduceByKey
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-/*        count = docs
-                .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
-                    String[] tokens = document.split(" ");
-                    HashMap<String, Long> counts = new HashMap<>();
-                    ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
-                    for (String token : tokens) {
-                        counts.put(token, 1L + counts.getOrDefault(token, 0L));
-                    }
-                    for (Map.Entry<String, Long> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
-                    }
-                    return pairs.iterator();
-                })
-                .reduceByKey((x, y) -> x + y);    // <-- REDUCE PHASE (R1)
-        numwords = count.count();
-        System.out.println("Number of distinct words in the documents = " + numwords);*/
-
+        
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // IMPROVED WORD COUNT with groupByKey
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
