@@ -55,15 +55,12 @@ public class hw1 {
         count = docs
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)  generate key value pairs for every line
                     String[] tokens = line.split(" ");
-                    HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
 
                     // Read all the classes in the input file
-                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
+                    // Each line of the file, so each instance of the reducer, represents a single object/class
+                    pairs.add(new Tuple2<Long,String>(Long.parseLong(tokens[0]) % K, tokens[1]));  // generate key value pair
 
-                    for (Map.Entry<Long, String> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<Long,String>(e.getKey()%K, e.getValue()));  // generate key value pair
-                    }
                     return pairs.iterator();
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1) return a list of (k, list of Strings)
@@ -99,18 +96,13 @@ public class hw1 {
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)
 
                     String[] tokens = line.split(" ");
-                    HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
 
-                    // Read all the classes in the input file
-                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
-
                     // Max partition size
-                    Long J = (long)Math.floor(Math.sqrt(K));
+                    long J = (long) Math.floor(Math.sqrt(K));
 
-                    for (Map.Entry<Long, String> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<Long,String>(e.getKey() % J, e.getValue()));  // generate key value pair
-                    }
+                    pairs.add(new Tuple2<Long,String>(Long.parseLong(tokens[0]) % J, tokens[1]));  // generate key value pair
+
                     return pairs.iterator();
                 })
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
