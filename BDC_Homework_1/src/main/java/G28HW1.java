@@ -1,30 +1,21 @@
-import org.apache.log4j.spi.RootLogger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.log4j.Logger;
-import org.apache.log4j.Level;
-import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
-import shapeless.Tuple;
-import java.io.File;
-import java.io.FileNotFoundException;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class hw1 {
+public class G28HW1 {
 
     public static void main(String[] args) throws IOException {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // CHECKING NUMBER OF CMD LINE PARAMETERS
         // Parameters are: number_partitions, <path to file>
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        Logger.getLogger("org").setLevel(Level.OFF);
-        Logger.getLogger("akka").setLevel(Level.OFF);
-
         if (args.length != 2) {
             throw new IllegalArgumentException("USAGE: num_partitions file_path");
         }
@@ -32,10 +23,9 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SPARK SETUP
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        System.setProperty("hadoop.home.dir", "C:\\winutils");
         SparkConf conf = new SparkConf(true).setAppName("Homework1");
         JavaSparkContext sc = new JavaSparkContext(conf);
-
+        sc.setLogLevel("WARN");
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // INPUT READING
@@ -55,7 +45,6 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // CLASS COUNT WITH DETERMINISTIC PARTITION
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // it è la lista di tutti i ounter parziali associata alla chiave graggruppata da grupByKey()
         count = docs
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)  generate key value pairs for every line
                     String[] tokens = line.split(" ");
