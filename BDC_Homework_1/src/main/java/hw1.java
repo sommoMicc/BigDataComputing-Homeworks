@@ -1,3 +1,4 @@
+import org.apache.log4j.spi.RootLogger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -10,7 +11,9 @@ import shapeless.Tuple;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class hw1 {
 
@@ -32,6 +35,7 @@ public class hw1 {
         System.setProperty("hadoop.home.dir", "C:\\winutils");
         SparkConf conf = new SparkConf(true).setAppName("Homework1");
         JavaSparkContext sc = new JavaSparkContext(conf);
+
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // INPUT READING
