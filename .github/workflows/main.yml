@@ -25,8 +25,7 @@ jobs:
       with:
         to: ${{ secrets.TELEGRAM_TO }}
         token: ${{ secrets.TELEGRAM_TOKEN }}
-        format: markdown
         message: > 
-          ** Attenzione!**. Il minchione ${{github.actor}} ha appena una commit probabilmente inutile. Ricordati di pushare!
+          ** Attenzione!** Il minchione ${{github.actor}} ha appena una commit probabilmente inutile. Ricordati di pushare!
         
         photo: '.github/workflows/commit_image.jpg'
