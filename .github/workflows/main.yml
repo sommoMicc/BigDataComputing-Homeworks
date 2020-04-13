@@ -25,8 +25,9 @@ jobs:
       with:
         to: ${{ secrets.TELEGRAM_TO }}
         token: ${{ secrets.TELEGRAM_TOKEN }}
+        format: markdown
         message: > 
           # Attenzione!
           Il minchione ${{github.actor}} ha appena una commit probabilmente inutile
         
-        photo: 'https://images2.corriereobjects.it/methode_image/2018/09/20/Politica/Foto%20Politica%20-%20Trattate/11370358-k3IB-U303041457661160H-1224x916@Corriere-Web-Sezioni-593x443.jpg'
+        photo: '.github/workflows/commit_image.jpg'
