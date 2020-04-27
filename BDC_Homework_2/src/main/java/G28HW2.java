@@ -46,6 +46,12 @@ public abstract class G28HW2 {
         String filename = args[0];
         ArrayList<Vector> inputPoints = new ArrayList<>();
         inputPoints = readVectorsSeq(filename);
+        
+        int k = 10;
+
+        exactMPD(inputPoints);
+        twoApproxMPD(inputPoints, k);
+        kCenterMPD(inputPoints, k);
     }
 
     /**
