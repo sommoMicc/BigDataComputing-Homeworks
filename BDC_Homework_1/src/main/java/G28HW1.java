@@ -2,26 +2,20 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.log4j.Logger;
-import org.apache.log4j.Level;
-import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
-import shapeless.Tuple;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.*;
 
-public class hw1 {
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+public class G28HW1 {
 
     public static void main(String[] args) throws IOException {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // CHECKING NUMBER OF CMD LINE PARAMETERS
         // Parameters are: number_partitions, <path to file>
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        Logger.getLogger("org").setLevel(Level.OFF);
-        Logger.getLogger("akka").setLevel(Level.OFF);
-
         if (args.length != 2) {
             throw new IllegalArgumentException("USAGE: num_partitions file_path");
         }
@@ -29,9 +23,9 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SPARK SETUP
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        System.setProperty("hadoop.home.dir", "C:\\winutils");
         SparkConf conf = new SparkConf(true).setAppName("Homework1");
         JavaSparkContext sc = new JavaSparkContext(conf);
+        sc.setLogLevel("WARN");
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // INPUT READING
@@ -51,19 +45,15 @@ public class hw1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // CLASS COUNT WITH DETERMINISTIC PARTITION
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // it è la lista di tutti i ounter parziali associata alla chiave graggruppata da grupByKey()
         count = docs
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)  generate key value pairs for every line
                     String[] tokens = line.split(" ");
-                    HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
 
                     // Read all the classes in the input file
-                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
+                    // Each line of the file, so each instance of the reducer, represents a single object/class
+                    pairs.add(new Tuple2<Long,String>(Long.parseLong(tokens[0]) % K, tokens[1]));  // generate key value pair
 
-                    for (Map.Entry<Long, String> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<Long,String>(e.getKey()%K, e.getValue()));  // generate key value pair
-                    }
                     return pairs.iterator();
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1) return a list of (k, list of Strings)
@@ -99,18 +89,13 @@ public class hw1 {
                 .flatMapToPair((line) -> {    // <-- MAP PHASE (R1)
 
                     String[] tokens = line.split(" ");
-                    HashMap<Long, String> counts = new HashMap<>();
                     ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>();
 
-                    // Read all the classes in the input file
-                    counts.put(Long.parseLong(tokens[0]), tokens[1]);
-
                     // Max partition size
-                    Long J = (long)Math.floor(Math.sqrt(K));
+                    long J = (long) Math.floor(Math.sqrt(K));
 
-                    for (Map.Entry<Long, String> e : counts.entrySet()) {
-                        pairs.add(new Tuple2<Long,String>(e.getKey() % J, e.getValue()));  // generate key value pair
-                    }
+                    pairs.add(new Tuple2<Long,String>(Long.parseLong(tokens[0]) % J, tokens[1]));  // generate key value pair
+
                     return pairs.iterator();
                 })
                 .mapPartitionsToPair((cc) -> {    // <-- REDUCE PHASE (R1)
