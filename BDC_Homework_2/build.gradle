@@ -1,0 +1,46 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use jcenter for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+  jcenter()
+}
+
+configurations {
+    sparkCompile // Configuration for Spark: should be included in the local
+                 // class path both at compilation and at runtime, but should
+                 // be excluded from the fat jar
+    shadowCompile // Configuration for things that should be included in the shadow jar.
+}
+
+dependencies {
+    sparkCompile 'org.apache.spark:spark-core_2.11:2.2.0'
+    sparkCompile 'org.apache.spark:spark-mllib_2.11:2.2.0'
+    sparkCompile 'org.apache.hadoop:hadoop-client:2.7.2'
+    shadowCompile 'com.beust:jcommander:1.72'
+    shadowCompile group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.7.0'
+    runtime group: 'edu.stanford.nlp', name: 'stanford-corenlp', version: '3.7.0', classifier: 'models-english'
+}
+
+configurations.compile.extendsFrom configurations.sparkCompile
+configurations.compile.extendsFrom configurations.shadowCompile
+
+shadowJar {
+    zip64 true
+    configurations = [project.configurations.shadowCompile] // Exclude runtime-only path
+}
+
+

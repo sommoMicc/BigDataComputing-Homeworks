@@ -1,22 +1,13 @@
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.log4j.Logger;
-import org.apache.log4j.Level;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
-import org.apache.spark.storage.StorageLevel;
-import scala.Tuple2;
-import shapeless.Tuple;
-import java.io.File;
-import java.io.FileNotFoundException;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Random;
 
-public abstract class G28HW2 {
+public class G28HW2 {
 
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // Auxiliary methods
@@ -47,11 +38,12 @@ public abstract class G28HW2 {
         ArrayList<Vector> inputPoints = new ArrayList<>();
         inputPoints = readVectorsSeq(filename);
         
-        int k = 10;
+        int k = Integer.parseInt(args[1]);
 
-        exactMPD(inputPoints);
-        twoApproxMPD(inputPoints, k);
-        kCenterMPD(inputPoints, k);
+        // exactMPD(inputPoints);
+        double twoApproxDistance = G28HW2.twoApproxMPD(inputPoints, k);
+        System.out.println("TwoApproxDistance: " + twoApproxDistance);
+        // kCenterMPD(inputPoints, k);
     }
 
     /**
@@ -63,7 +55,9 @@ public abstract class G28HW2 {
      * Max distance =  max distance returned by the method
      * Running time =  running time of the method.
      */
-    public abstract double exactMPD(ArrayList<Vector> S);
+    public static double exactMPD(ArrayList<Vector> S) {
+        return 0.0;
+    }
 
     /**
      * receives in input a set of points S and an interger k < |S|, selects k points at random from S (let S' denote
@@ -80,7 +74,32 @@ public abstract class G28HW2 {
      * Max distance =  max distance returned by the method
      * Running time =  running time of the method.
      */
-    public abstract double twoApproxMPD(ArrayList<Vector> S, int k);
+    public static double twoApproxMPD(ArrayList<Vector> S, int k) {
+        Random random = new Random();
+        ArrayList<Vector> S_prime = new ArrayList<Vector>();
+
+        for(int i=0; i<k; i++)
+            S_prime.add(S.get(random.nextInt(S.size())));
+
+        double max_distance = -1;
+
+        for(int i=0; i<S_prime.size(); i++) {
+            Vector x = S_prime.get(i);
+            for(int j=0; j<S_prime.size(); j++) {
+                Vector y = S_prime.get(j);
+
+                double current_distance = G28HW2.euclideanDistance(x,y);
+                if(current_distance > max_distance) {
+                    max_distance = current_distance;
+                }
+            }
+        }
+        return max_distance;
+    }
+
+    public static double euclideanDistance(Vector x, Vector y) {
+        return Math.sqrt(Vectors.sqdist(x,y));
+    }
 
     /**
      *  receives in input a set of points S and an integer k < |S|, and returns a set C of k centers selected from
@@ -94,5 +113,7 @@ public abstract class G28HW2 {
      * Max distance =  max distance returned by exactMPD(centers)
      * Running time =  combined running time of the two methods.
      */
-    public abstract ArrayList<Vector> kCenterMPD(ArrayList<Vector> S, int k);
+    public static ArrayList<Vector> kCenterMPD(ArrayList<Vector> S, int k) {
+        return new ArrayList<>();
+    }
 }
