@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class G28HW2 {
 
@@ -49,6 +50,11 @@ public class G28HW2 {
                 "\nRunning time = " + (System.currentTimeMillis() - startTime1) + "\n");
 
         System.out.println("\n2-APPROXIMATION ALGORITHM\n");
+        long startTime2 = System.currentTimeMillis();
+        double  approxMaxDistance = twoApproxMPD(inputPoints, k);
+        System.out.println("k = " + k +
+                          "\nMax distance = " + approxMaxDistance +
+                           "\nRunning time = " + (System.currentTimeMillis() - startTime2) + "\n");
 
         System.out.println("\n3-KCENTER-MPD\n");
         long startTime3 = System.currentTimeMillis();
@@ -98,7 +104,32 @@ public class G28HW2 {
      * Max distance =  max distance returned by the method
      * Running time =  running time of the method.
      */
-    //public abstract double twoApproxMPD(ArrayList<Vector> S, int k);
+    public static double twoApproxMPD(ArrayList<Vector> S, int k) {
+        Random random = new Random();
+        ArrayList<Vector> S_prime = new ArrayList<Vector>();
+
+        for(int i=0; i<k; i++)
+            S_prime.add(S.get(random.nextInt(S.size())));
+
+        double max_distance = -1;
+
+        for(int i=0; i<S_prime.size(); i++) {
+            Vector x = S_prime.get(i);
+            for(int j=0; j<S_prime.size(); j++) {
+                Vector y = S_prime.get(j);
+
+                double current_distance = G28HW2.euclideanDistance(x,y);
+                if(current_distance > max_distance) {
+                    max_distance = current_distance;
+                }
+            }
+        }
+        return max_distance;
+    }
+
+    public static double euclideanDistance(Vector x, Vector y) {
+        return Math.sqrt(Vectors.sqdist(x,y));
+    }
 
     /**
      *  receives in input a set of points S and an integer k < |S|, and returns a set C of k centers selected from
