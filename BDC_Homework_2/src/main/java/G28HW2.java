@@ -10,6 +10,8 @@ import java.util.Random;
 
 public class G28HW2 {
 
+    private static Random random = new Random();
+
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // Auxiliary methods
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -36,6 +38,9 @@ public class G28HW2 {
 
 
     public static void main(String[] args) throws IOException {
+        //Set the seed so the results will be equal in the various runs
+        G28HW2.random.setSeed(1123581L);
+
         // Reading points from a file whose name is provided as args[0]
         String filename = args[0];
         int k = Integer.parseInt(args[1]);
@@ -102,11 +107,10 @@ public class G28HW2 {
      * Running time =  running time of the method.
      */
     public static double twoApproxMPD(ArrayList<Vector> S, int k) {
-        Random random = new Random();
         ArrayList<Vector> S_prime = new ArrayList<Vector>();
 
         for (int i = 0; i < k; i++)
-            S_prime.add(S.get(random.nextInt(S.size())));
+            S_prime.add(S.get(G28HW2.random.nextInt(S.size())));
 
         double max_distance = -1;
 
@@ -144,7 +148,7 @@ public class G28HW2 {
 
         // Choose a random point as first center
         final boolean chosen[] = new boolean[PSize];
-        final int firstPointIndex = (int) (Math.random() * PSize);
+        final int firstPointIndex = G28HW2.random.nextInt(PSize);
 
         // Set to true that we chosen the point
         chosen[firstPointIndex] = true;
