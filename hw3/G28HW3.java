@@ -131,7 +131,7 @@ public class G28HW3 {
         int k = Integer.parseInt(args[0]);
         int L = Integer.parseInt(args[1]);
 
-        String inputPath = "zalando.csv";
+        String inputPath = "uber-small.csv";
 
         long start = System.currentTimeMillis();
         // Read input file and subdivide it into K random partitions
@@ -189,7 +189,7 @@ public class G28HW3 {
 
         for (int i = 0; i < k; i++) {
 
-            for (int j = 0; j < k-1; j++) {
+            for (int j = 0; j < k; j++) {
                 if (candidates[j] == true) {
                     result = result + euclideanDistance(pointsSet.get(i), pointsSet.get(j));
                     }
