@@ -183,19 +183,20 @@ public class G28HW3 {
 
     public static double measure(ArrayList<Vector> pointsSet) {
         int k = pointsSet.size();
+
         double result = 0;
-        boolean[] candidates = new boolean[k];
-        Arrays.fill(candidates, true);
+        //boolean[] candidates = new boolean[k];
+        //Arrays.fill(candidates, true);
 
         for (int i = 0; i < k; i++) {
 
-            for (int j = 0; j < k; j++) {
-                if (candidates[j] == true) {
+            for (int j = i+1; j < k; j++) {
+
                     result = result + euclideanDistance(pointsSet.get(i), pointsSet.get(j));
-                    }
+
                 }
 
-            candidates[i] = false;  // metti falso il punto da cui hai calcolato le distanze a tutti gli altri
+
             }
 
         result = result / (k*(k-1)/2);
