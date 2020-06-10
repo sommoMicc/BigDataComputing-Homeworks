@@ -1,0 +1,96 @@
+// ==================== Table of contents ====================
+//   1. Build script dependencies
+//   2. Build configuration
+//   3. Dependencies
+//   4. Build the bundle
+//
+// --------------- Where to modify things --------------
+//
+//  a. For problems with the construction of the JAR file, you
+//     probably want to update the version of the shadow jar
+//     plugin in section (1). Head to https://github.com/johnrengelman/shadow/releases
+//     and see what is the most recent version number, and
+//     replace it at the end of the line looking like
+//
+//        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+//           
+//  b. To update Spark, modify the configuration in section (3).
+//     Take the lines looking like
+//
+//        sparkCompile 'org.apache.spark:spark-core_2.11:2.2.0'
+//        sparkCompile 'org.apache.spark:spark-mllib_2.11:2.2.0'
+//
+//     and replace `2.2.0` with the desired version of Spark.
+
+
+// =============== 1. Build script dependencies ===============
+//
+// This section defines the dependencies of the build script itself.
+// Unlike the `make` Makefiles, Gradle build files are full fledged
+// programs, which can have dependencies themselves. In this case, we
+// specify the dependency of the *build* script (not the student's code)
+// on the `shadow` plugin, which provides additional functionality over
+// the default gradle, in particular the ability to generate jar files
+// with all the dependencies bundled.
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+
+// ==================== 2. Build configuration ====================  
+//
+// This section configures the build. In particular it defines a 
+// `configuration` block, which is used to define groups for related
+// things (like dependencies and sources), which in Gradle are
+// called configurations.
+
+configurations {
+    sparkCompile // Configuration for Spark: should be included in the local
+                 // class path both at compilation and at runtime, but should
+                 // be excluded from the fat jar
+    shadowCompile // Configuration for things that should be included in the shadow jar.
+}
+
+configurations.compile.extendsFrom configurations.sparkCompile
+configurations.compile.extendsFrom configurations.shadowCompile
+
+// ==================== 3. Dependencies ====================
+//
+// In this section we define the dependencies that the 
+// student's code will use.
+//
+// In this block you declare where to find the dependencies 
+// of your project...
+repositories {
+    // Use jcenter for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+  jcenter()
+}
+
+// ...and here we define the actual dependencies to use
+dependencies {
+    sparkCompile 'org.apache.spark:spark-core_2.11:2.2.0'
+    sparkCompile 'org.apache.spark:spark-mllib_2.11:2.2.0'
+    sparkCompile 'org.apache.hadoop:hadoop-client:2.7.2'
+}
+
+// ==================== 4. Build the bundle ====================
+// 
+// Here we define how to build the jar file that contains all 
+// the dependencies of the project. Much is assumed by
+// convention.
+ 
+shadowJar {
+    zip64 true
+    configurations = [project.configurations.shadowCompile] // Exclude runtime-only path and Spark, which is provided on the cluster
+}
+
