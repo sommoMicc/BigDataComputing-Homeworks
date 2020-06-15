@@ -168,7 +168,8 @@ public class G28HW3 {
             ArrayList<Vector> outFFT = kCenterMPD(temp, k);  // outFFT è l'insieme di punti del corset
 
             return outFFT.iterator();
-        });
+        }).cache();
+        long temp = outRound1.count(); //to avoid lazy evaluation
         long end1 = System.currentTimeMillis();
         System.out.println("Runtime of round 1 = " + (end1 - start1));
 
