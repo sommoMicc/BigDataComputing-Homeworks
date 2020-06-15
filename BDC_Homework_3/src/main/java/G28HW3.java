@@ -136,7 +136,7 @@ public class G28HW3 {
         long start = System.currentTimeMillis();
         // Read input file and subdivide it into K random partitions
         JavaRDD<Vector> inputPoints = sc.textFile(inputPath).map(G28HW3::strToVector).repartition(L).cache();
-        long numdocs = inputPoints.count();
+        long numdocs = inputPoints.count(); // perform an action to materialize rdd and count the time in the right way
         long end = System.currentTimeMillis();
 
         System.out.println("Number of points = " + numdocs);
@@ -145,65 +145,70 @@ public class G28HW3 {
         System.out.println("Initialization time = " + (end - start));
 
 
-        ArrayList<Vector> output = runMapReduce(inputPoints, k, L);
-        //System.out.println(output);
+        ArrayList<Vector> solution = runMapReduce(inputPoints, k, L);
 
-        double avgDist = measure(output);
+        double avgDist = measure(solution);
         System.out.println("Average distance = " + avgDist);
-
-
-
 
     }
 
+    /**
+     * Implements the map reduce algorithm for diversity maximization
+     *
+     * @param PointsRDD an rdd of points where each point is a Vector
+     * @param k param of the diversity maximisation
+     * @param L number of partitions to use
+     * @return out points computed using runSequential method which are a solution to diversity maximization problem
+     */
+
     public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k, int L) {
         long start1 = System.currentTimeMillis();
-        JavaRDD<Vector> outRound1 = pointsRDD.mapPartitions((cc) -> {    // <-- REDUCE PHASE (R1)  cc ha tutti i punti (Vectors) della partizione
+        JavaRDD<Vector> outRound1 = pointsRDD.mapPartitions((cc) -> { // map to partition randomly the pointsRDD
 
             ArrayList<Vector> temp = new ArrayList<>();
             while (cc.hasNext()) {
                 Vector el=cc.next();
                 temp.add(el);
             }
-            ArrayList<Vector> outFFT = kCenterMPD(temp, k);  // outFFT è l'insieme di punti del corset
+            ArrayList<Vector> outFFT = kCenterMPD(temp, k);  // extracts k points from each partition using Farthest-First Traversal algorithm
 
             return outFFT.iterator();
-        }).cache();
-        long temp = outRound1.count(); //to avoid lazy evaluation
+        }).cache();  // cache to avoid lazy evaluation and to materialize the rdd in memory  TODO: prova senza
+        long temp = outRound1.count(); //to avoid lazy evaluation performs an action
         long end1 = System.currentTimeMillis();
         System.out.println("Runtime of round 1 = " + (end1 - start1));
 
         long start2 = System.currentTimeMillis();
-        ArrayList<Vector> coreset = new ArrayList<>(outRound1.collect());
-        ArrayList<Vector> out = runSequential(coreset, k);
+        ArrayList<Vector> coreset = new ArrayList<>(outRound1.collect()); // collect the centers computed by the partitions
+        ArrayList<Vector> out = runSequential(coreset, k);  // run sequential algorithm (2-approximation)
         long end2 = System.currentTimeMillis();
         System.out.println("Runtime of round 2 = " + (end2 - start2));
 
         return out;
     }
 
+    /**
+     * Compute the average distance between the solution points
+     *
+     * @param pointsSet an array list of points returned by runMapReduce
+     * @return result: the average distance among the solution points
+     */
+
     public static double measure(ArrayList<Vector> pointsSet) {
         int k = pointsSet.size();
-
         double result = 0;
-        //boolean[] candidates = new boolean[k];
-        //Arrays.fill(candidates, true);
 
         for (int i = 0; i < k; i++) {
 
             for (int j = i+1; j < k; j++) {
-
+// compute the distance between a point and every other points and in the next iteration do not compute distances already computed
                     result = result + euclideanDistance(pointsSet.get(i), pointsSet.get(j));
-
                 }
-
-
             }
 
-        result = result / (k*(k-1)/2);
+        result = result / (k*(k-1)/2);  //divide by the number of distances computed
 
         return result;
-
 
     }
 
