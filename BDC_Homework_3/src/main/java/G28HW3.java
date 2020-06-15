@@ -173,7 +173,7 @@ public class G28HW3 {
             ArrayList<Vector> outFFT = kCenterMPD(temp, k);  // extracts k points from each partition using Farthest-First Traversal algorithm
 
             return outFFT.iterator();
-        }).cache();  // cache to avoid lazy evaluation and to materialize the rdd in memory  TODO: prova senza
+        }).cache();  // cache to avoid lazy evaluation and to materialize the rdd in memory
         long temp = outRound1.count(); //to avoid lazy evaluation performs an action
         long end1 = System.currentTimeMillis();
         System.out.println("Runtime of round 1 = " + (end1 - start1));
