@@ -145,7 +145,7 @@ public class G28HW3 {
         System.out.println("Initialization time = " + (end - start));
 
 
-        ArrayList<Vector> solution = runMapReduce(inputPoints, k, L);
+        ArrayList<Vector> solution = runMapReduce(inputPoints, k);
 
         double avgDist = measure(solution);
         System.out.println("Average distance = " + avgDist);
@@ -155,13 +155,12 @@ public class G28HW3 {
     /**
      * Implements the map reduce algorithm for diversity maximization
      *
-     * @param PointsRDD an rdd of points where each point is a Vector
+     * @param pointsRDD an rdd of points where each point is a Vector
      * @param k param of the diversity maximisation
-     * @param L number of partitions to use
      * @return out points computed using runSequential method which are a solution to diversity maximization problem
      */
 
-    public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k, int L) {
+    public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k) {
         long start1 = System.currentTimeMillis();
         JavaRDD<Vector> outRound1 = pointsRDD.mapPartitions((cc) -> { // map to partition randomly the pointsRDD
 
@@ -206,7 +205,7 @@ public class G28HW3 {
                 }
             }
 
-        result = result / (k*(k-1)/2);  //divide by the number of distances computed
+        result = result / (k*(k-1)/2.0);  //divide by the number of distances computed
 
         return result;
 
